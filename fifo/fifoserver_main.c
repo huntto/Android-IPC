@@ -1,4 +1,4 @@
-#include "fifo.h"
+#include "client.h"
 
 #include <ctype.h>
 
@@ -30,17 +30,18 @@ int main()
                 tmp_char_ptr++;
             }
 
-            sprintf(client_fifo, CLIENT_FIFO_NAME, my_data.clent_pid);
+            sprintf(client_fifo, CLIENT_FIFO_NAME, my_data.client_pid);
             client_fifo_fd = open(client_fifo, O_WRONLY);
             if (client_fifo_fd != -1)
             {
-                write(client_fifo_fd, &my_data， sizeof(my_data));
+                write(client_fifo_fd, &my_data, sizeof(my_data));
                 close(client_fifo_fd);
             }
-        } while (read_res > 0);
-
-        close(server_fifo_fd);
-        unlink(SERVER_FIFO_NAME);
-        exit(EXIT_SUCCESS);
+        } 
     }
+    while (read_res > 0);
+    
+    close(server_fifo_fd);
+    unlink(SERVER_FIFO_NAME);
+    exit(EXIT_SUCCESS);
 }
