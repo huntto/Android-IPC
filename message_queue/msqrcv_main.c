@@ -6,52 +6,37 @@
 
 #include <sys/msg.h>
 
-#include "msq_com.h"
+struct my_msg_st {
+    long int my_msg_type;
+    char some_text[BUFSIZ];
+};
 
 int main()
 {
     int running = 1;
     int msgid;
     struct my_msg_st some_data;
-    char buffer[BUFSIZ];
-    int shmid;
+    long int msg_to_receive = 0;
+    msgid = msgget((key_t)1234, 0666 | IPC_CREAT);
 
-    shmid = shmget((key_t) 1234, sizeof(struct shared_use_st), 0666 | IPC_CREAT);
-
-    if (shmid == -1) {
-        fprintf(stderr, "shmget failed\n");
+    if (msgid == -1) {
+        fprintf(stderr, "msgget failed with error: %d\n", errno);
         exit(EXIT_FAILURE);
     }
 
-    shared_memory = shmat(shmid, (void *)0, 0);
-    if (shared_memory == (void*) -1)
-    {
-        fprintf(stderr, "shmat failed\n");
-        exit(EXIT_FAILURE);
-    }
-
-    printf("Memory attached at %X\n", (int) shared_memory);
-    shared_stuff = (struct shared_use_st*) shared_memory;
-
-    while (running)
-    {
-        while(shared_stuff->written_by_you == 1) {
-            sleep(1);
-            printf("waiting for client...\n");
+    while (running) {
+        if (msgrcv(msgid, (void *)&some_data, BUFSIZ, msg_to_receive, 0) == -1) {
+            fprintf(stderr, "msgrcv failed with error: %d\n", errno);
+            exit(EXIT_FAILURE);
         }
-        printf("Enter some text: ");
-        fgets(buffer, BUFSIZ, stdin);
-
-        strncpy(shared_stuff->some_text, buffer, TEXT_SZ);
-        shared_stuff->written_by_you = 1;
-
-        if (strncmp(buffer, "end", 3) == 0) {
+        printf("You wrote: %s", some_data.some_text);
+        if (strncmp(some_data.some_text, "end", 3) == 0) {
             running = 0;
         }
     }
 
-    if (shmdt(shared_memory) == -1) {
-        fprintf(stderr, "shmdt failed\n");
+    if (msgctl(msgid, IPC_RMID, 0) == -1) {
+        fprintf(stderr, "msgctl(IPC_RMID) failed\n");
         exit(EXIT_FAILURE);
     }
 
